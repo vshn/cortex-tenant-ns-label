@@ -21,17 +21,8 @@ RUN ldd cortex-tenant | tr -s '[:blank:]' '\n' | grep '^/' | \
     xargs -I % sh -c 'mkdir -p $(dirname ./%); cp % ./%;'
 RUN mkdir -p lib64 && cp /lib64/ld-linux-x86-64.so.2 lib64/
 
-RUN mkdir /data && cp /build/deploy/cortex-tenant.yml /data/cortex-tenant.yml
 
-FROM scratch
-
-COPY --chown=65534:0 --from=builder /dist /
-
-COPY --chown=65534:0 --from=builder /data /data
-USER 65534
-
-WORKDIR /data
-
+FROM busybox
+COPY --from=builder /build/cortex-tenant /
 COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-ENTRYPOINT ["/cortex-tenant"]
-CMD ["-config", "/data/cortex-tenant.yml"]
+CMD ["/bin/sh", "-c", "/bin/echo \"${CONFIG}\" > /tmp/cortex-tenant.yml; /cortex-tenant -config /tmp/cortex-tenant.yml"]
