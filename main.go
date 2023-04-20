@@ -5,21 +5,49 @@ import (
 	"flag"
 	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"net/http"
 	_ "net/http/pprof"
 
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 var (
 	version = "0.0.0"
 )
+
+func fetchTenantMap(clientset *kubernetes.Clientset) (map[string]string, error) {
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	tenantMap := make(map[string]string)
+	for _, namespace := range namespaces.Items {
+		if org, found := namespace.Labels["appuio.io/organization"]; found {
+			tenantMap[namespace.Name] = org
+		}
+	}
+	return tenantMap, nil
+}
+
+func refreshTenantMap(p *processor, clientset *kubernetes.Clientset) {
+	for {
+		time.Sleep(60 * time.Second)
+		tenantMap, err := fetchTenantMap(clientset)
+		if err != nil {
+			log.Fatalf("error refreshing tenant map: %v", err)
+		} else {
+			p.TenantLookup.Store(&tenantMap)
+			log.Warnf("successfully refreshed tenant map, %d namespaces with tenants found", len(tenantMap))
+		}
+	}
+}
 
 func main() {
 	cfgFile := flag.String("config", "", "Path to a config file")
@@ -75,19 +103,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), v1.ListOptions{})
+	tenantMap, err := fetchTenantMap(clientset)
 	if err != nil {
-		fmt.Printf("error getting namespaces: %v\n", err)
+		fmt.Printf("error getting initial tenant map: %v\n", err)
 		os.Exit(1)
 	}
-	for _, namespace := range namespaces.Items {
-		fmt.Printf("namespace %s\n", namespace.Name)
-		if org, found := namespace.Labels["appuio.io/organization"]; found {
-			fmt.Printf("  org %s\n", org)
-		}
-	}
 
-	proc := newProcessor(*cfg)
+	fmt.Printf("tenant lookup map: %v\n", tenantMap)
+
+	proc := newProcessor(*cfg, tenantMap)
+
+	go refreshTenantMap(proc, clientset)
 
 	if err = proc.run(); err != nil {
 		log.Fatalf("Unable to start: %s", err)
