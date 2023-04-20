@@ -22,8 +22,12 @@ type config struct {
 	TimeoutShutdown   time.Duration `yaml:"timeout_shutdown"`
 	Concurrency       int
 	Metadata          bool
-	LogResponseErrors bool `yaml:"log_response_errors"`
+	LogResponseErrors bool          `yaml:"log_response_errors"`
 	MaxConnDuration   time.Duration `yaml:"max_connection_duration"`
+
+	K8s_api            string
+	K8s_serviceaccount string
+	K8s_token          string
 
 	Auth struct {
 		Egress struct {
