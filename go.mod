@@ -1,4 +1,4 @@
-module github.com/blind-oracle/cortex-tenant
+module github.com/vshn/cortex-tenant-ns-label
 
 go 1.20
 
