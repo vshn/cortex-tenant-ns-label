@@ -11,6 +11,6 @@ COPY . .
 RUN make build
 
 FROM busybox
-COPY --from=builder /build/cortex-tenant /
+COPY --from=builder /build/cortex-tenant-ns-label /
 COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-CMD ["/bin/sh", "-c", "/bin/echo \"${CONFIG}\" > /tmp/cortex-tenant.yml; /cortex-tenant -config /tmp/cortex-tenant.yml"]
+CMD ["/bin/sh", "-c", "/bin/echo \"${CONFIG}\" > /tmp/cortex-tenant.yml; /cortex-tenant-ns-label -config /tmp/cortex-tenant.yml"]
