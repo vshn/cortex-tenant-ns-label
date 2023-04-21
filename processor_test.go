@@ -44,8 +44,8 @@ var (
 	testTS1 = prompb.TimeSeries{
 		Labels: []prompb.Label{
 			{
-				Name:  "__tenant__",
-				Value: "foobar",
+				Name:  "namespace",
+				Value: "namespace0",
 			},
 		},
 
@@ -57,8 +57,8 @@ var (
 	testTS2 = prompb.TimeSeries{
 		Labels: []prompb.Label{
 			{
-				Name:  "__tenant__",
-				Value: "foobaz",
+				Name:  "namespace",
+				Value: "namespace1",
 			},
 		},
 
@@ -79,8 +79,8 @@ var (
 	testTS4 = prompb.TimeSeries{
 		Labels: []prompb.Label{
 			{
-				Name:  "__tenant__",
-				Value: "foobaz",
+				Name:  "namespace",
+				Value: "namespace1",
 			},
 		},
 
@@ -124,7 +124,10 @@ func createProcessor() (*processor, error) {
 		return nil, err
 	}
 
-	return newProcessor(*cfg), nil
+	tenantMap := make(map[string]string)
+	tenantMap["namespace0"] = "foobar"
+	tenantMap["namespace1"] = "foobaz"
+	return newProcessor(*cfg, tenantMap), nil
 }
 
 func sinkHandlerError(ctx *fh.RequestCtx) {
@@ -161,7 +164,7 @@ func Test_handle(t *testing.T) {
 	cfg.pipeOut = fhu.NewInmemoryListener()
 	cfg.Tenant.LabelRemove = true
 
-	p := newProcessor(*cfg)
+	p := newProcessor(*cfg, make(map[string]string))
 	err = p.run()
 	assert.Nil(t, err)
 
@@ -303,23 +306,22 @@ func Test_processTimeseries(t *testing.T) {
 	assert.Nil(t, err)
 	cfg.Tenant.LabelRemove = true
 
-	p := newProcessor(*cfg)
+	tenantMap := make(map[string]string)
+	tenantMap["namespace1"] = "foobaz"
+	p := newProcessor(*cfg, tenantMap)
 	assert.Nil(t, err)
 
-	ten, err := p.processTimeseries(&testTS4)
+	ten := p.processTimeseries(&testTS4)
 	assert.Nil(t, err)
 	assert.Equal(t, "foobaz", ten)
 
-	ten, err = p.processTimeseries(&testTS3)
+	ten = p.processTimeseries(&testTS3)
 	assert.Nil(t, err)
 	assert.Equal(t, "default", ten)
 
 	cfg.Tenant.Default = ""
-	p = newProcessor(*cfg)
+	p = newProcessor(*cfg, make(map[string]string))
 	assert.Nil(t, err)
-
-	_, err = p.processTimeseries(&testTS3)
-	assert.NotNil(t, err)
 }
 
 func Test_marshal(t *testing.T) {
