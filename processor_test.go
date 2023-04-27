@@ -25,7 +25,6 @@ timeout: 50ms
 timeout_shutdown: 100ms
 
 tenant:
-  label_remove: false
   default: default
 `
 )
@@ -162,7 +161,6 @@ func Test_handle(t *testing.T) {
 
 	cfg.pipeIn = fhu.NewInmemoryListener()
 	cfg.pipeOut = fhu.NewInmemoryListener()
-	cfg.Tenant.LabelRemove = true
 
 	p := newProcessor(*cfg, make(map[string]string))
 	err = p.run()
@@ -304,7 +302,6 @@ func Test_handle(t *testing.T) {
 func Test_processTimeseries(t *testing.T) {
 	cfg, err := configParse([]byte(testConfig))
 	assert.Nil(t, err)
-	cfg.Tenant.LabelRemove = true
 
 	tenantMap := make(map[string]string)
 	tenantMap["namespace1"] = "foobaz"
