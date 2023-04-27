@@ -214,6 +214,9 @@ func (p *processor) createWriteRequests(wrReqIn *prompb.WriteRequest) (map[strin
 
 	for _, ts := range wrReqIn.Timeseries {
 		tenant := p.processTimeseries(&ts)
+		if tenant == "" {
+			continue
+		}
 
 		wrReqOut, ok := m[tenant]
 		if !ok {
