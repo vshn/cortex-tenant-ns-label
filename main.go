@@ -22,24 +22,24 @@ var (
 	version = "0.0.0"
 )
 
-func fetchTenantMap(clientset *kubernetes.Clientset) (map[string]string, error) {
+func fetchTenantMap(cfg *config, clientset *kubernetes.Clientset) (map[string]string, error) {
 	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	tenantMap := make(map[string]string)
 	for _, namespace := range namespaces.Items {
-		if org, found := namespace.Labels["appuio.io/organization"]; found {
+		if org, found := namespace.Labels[cfg.Namespace.TenantLabel]; found {
 			tenantMap[namespace.Name] = org
 		}
 	}
 	return tenantMap, nil
 }
 
-func refreshTenantMap(p *processor, clientset *kubernetes.Clientset) {
+func refreshTenantMap(cfg *config, p *processor, clientset *kubernetes.Clientset) {
 	for {
-		time.Sleep(60 * time.Second)
-		tenantMap, err := fetchTenantMap(clientset)
+		time.Sleep(cfg.Namespace.Refresh)
+		tenantMap, err := fetchTenantMap(cfg, clientset)
 		if err != nil {
 			log.Fatalf("error refreshing tenant map: %v", err)
 		} else {
@@ -81,11 +81,10 @@ func main() {
 
 	clientConfig, err := rest.InClusterConfig()
 	if err != nil {
-		fmt.Printf("k8s_api: %s\n", cfg.K8s_api)
-		fmt.Printf("k8s_serviceaccount: %s\n", cfg.K8s_serviceaccount)
+		fmt.Printf("k8s_api: %s\n", cfg.Namespace.K8sApi)
 		clientConfig = &rest.Config{}
-		clientConfig.BearerToken = cfg.K8s_token
-		clientConfig.Host = cfg.K8s_api
+		clientConfig.BearerToken = cfg.Namespace.K8sToken
+		clientConfig.Host = cfg.Namespace.K8sApi
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientConfig)
@@ -94,7 +93,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	tenantMap, err := fetchTenantMap(clientset)
+	tenantMap, err := fetchTenantMap(cfg, clientset)
 	if err != nil {
 		fmt.Printf("error getting initial tenant map: %v\n", err)
 		os.Exit(1)
@@ -104,7 +103,7 @@ func main() {
 
 	proc := newProcessor(*cfg, tenantMap)
 
-	go refreshTenantMap(proc, clientset)
+	go refreshTenantMap(cfg, proc, clientset)
 
 	if err = proc.run(); err != nil {
 		log.Fatalf("Unable to start: %s", err)
