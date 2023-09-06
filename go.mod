@@ -13,7 +13,7 @@ require (
 	github.com/prometheus/prometheus v0.43.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
-	github.com/valyala/fasthttp v1.45.0
+	github.com/valyala/fasthttp v1.49.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.26.2
 	k8s.io/client-go v0.26.2
