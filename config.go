@@ -24,6 +24,7 @@ type config struct {
 	Metadata          bool
 	LogResponseErrors bool          `yaml:"log_response_errors"`
 	MaxConnDuration   time.Duration `yaml:"max_connection_duration"`
+	MaxConnsPerHost   int           `yaml:"max_connections_per_host"`
 
 	Auth struct {
 		Egress struct {
@@ -61,6 +62,9 @@ func configParse(b []byte) (*config, error) {
 
 	if cfg.Concurrency == 0 {
 		cfg.Concurrency = 512
+	}
+	if cfg.MaxConnsPerHost == 0 {
+		cfg.MaxConnsPerHost = 64
 	}
 
 	if cfg.Tenant.Header == "" {
