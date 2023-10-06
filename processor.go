@@ -39,11 +39,11 @@ type processor struct {
 		egressHeader []byte
 	}
 
-	TenantLookup atomic.Pointer[map[string]string]
+	TenantLookup *atomic.Pointer[map[string]string]
 }
 
 func newProcessor(c config, tenantLookup map[string]string) *processor {
-	tenantLookupPointer := atomic.Pointer[map[string]string]{}
+	tenantLookupPointer := new(atomic.Pointer[map[string]string])
 	tenantLookupPointer.Store(&tenantLookup)
 	p := &processor{
 		cfg:          c,
