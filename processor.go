@@ -318,6 +318,7 @@ func (p *processor) send(clientIP net.Addr, reqID uuid.UUID, tenant string, wr *
 	req.SetBody(buf)
 
 	if err = p.cli.DoTimeout(req, resp, p.cfg.Timeout); err != nil {
+		err = fmt.Errorf("failed to perform egress request: %w", err)
 		return
 	}
 
