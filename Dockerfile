@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 RUN make build
 
-FROM busybox
+FROM docker.io/library/busybox:latest
 COPY --from=builder /build/cortex-tenant-ns-label /
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=docker.io/library/alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 CMD ["/bin/sh", "-c", "/bin/echo \"${CONFIG}\" > /tmp/cortex-tenant.yml; /cortex-tenant-ns-label -config /tmp/cortex-tenant.yml"]
