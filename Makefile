@@ -1,80 +1,22 @@
-NAME := cortex-tenant
-MAINTAINER := Igor Novgorodov
-DESCRIPTION := Cortex tenant proxy
-URL := https://github.com/blind-oracle/cortex-tenant
-LICENSE := MPL
-
+NAME := cortex-tenant-ns-label
 VERSION := $(shell cat VERSION)
-RELEASE := 1
+GO_SRC := $(wildcard *.go)
 
 GO ?= go
-OUT := .out
 
-all: rpm deb
+.PHONY: test
+test:
+	go test ./...
 
-build:
-	go test ./... && \
+.PHONY: build
+build: test $(NAME)
+
+$(NAME): $(GO_SRC)
 	CGO_ENABLED=0 \
 	GOARCH=amd64 \
 	GOOS=linux \
-	$(GO) build -a -tags netgo -ldflags '-s -w -extldflags "-static" -X main.version=$(VERSION)'
+	$(GO) build -a -tags netgo -ldflags '-s -w -extldflags "-static" -X main.version=$(VERSION)' -o $@
 
-prepare:
-	cd deploy && \
-	rm -rf $(OUT) && \
-	mkdir -p $(OUT)/etc $(OUT)/usr/sbin $(OUT)/var/lib/$(NAME) $(OUT)/usr/lib/systemd/system && \
-	cp $(NAME).yml $(OUT)/etc/$(NAME).yml && \
-	cp ../$(NAME) $(OUT)/usr/sbin
-
-rpm: build prepare build-rpm
-deb: build prepare build-deb
-
-build-rpm:
-	cd deploy && \
-	mkdir -p $(OUT)/etc/sysconfig && \
-	cp $(NAME).env $(OUT)/etc/sysconfig/$(NAME) && \
-	cp $(NAME).rpm.service $(OUT)/usr/lib/systemd/system/$(NAME).service
-
-	fpm \
-		-s dir \
-		--config-files etc/$(NAME).yml \
-		--config-files etc/sysconfig/$(NAME) \
-		-C deploy/$(OUT)/ \
-		-t rpm \
-		--after-install deploy/after_install.sh \
-		-n $(NAME) \
-		-v $(VERSION) \
-		--iteration $(RELEASE) \
-		--force \
-		--rpm-compression bzip2 \
-		--rpm-os linux \
-		--url $(URL) \
-		--description "$(DESCRIPTION)" \
-		-m "$(MAINTAINER)" \
-		--license "$(LICENSE)" \
-		-a amd64 \
-		.
-
-build-deb:
-	cd deploy && \
-	mkdir -p $(OUT)/etc/default && \
-	cp $(NAME).env $(OUT)/etc/default/$(NAME) && \
-	cp $(NAME).deb.service $(OUT)/usr/lib/systemd/system/$(NAME).service
-
-	fpm \
-		-s dir \
-		--config-files etc/$(NAME).yml \
-		--config-files etc/default/$(NAME) \
-		-C deploy/$(OUT)/ \
-		-t deb \
-		--after-install deploy/after_install.sh \
-		-n $(NAME) \
-		-v $(VERSION) \
-		--iteration $(RELEASE) \
-		--force \
-		--url $(URL) \
-		--description "$(DESCRIPTION)" \
-		-m "$(MAINTAINER)" \
-		--license "$(LICENSE)" \
-		-a amd64 \
-		.
+.PHONY: clean
+clean:
+	rm -f $(NAME)
